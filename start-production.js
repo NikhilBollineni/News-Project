@@ -8,7 +8,7 @@ console.log('🚀 Starting Production Automotive News Aggregation Application...
 // Set environment variables
 process.env.NODE_ENV = 'development';
 process.env.PORT = '1000';
-process.env.CLIENT_URL = 'http://localhost:1001';
+process.env.CLIENT_URL = 'http://localhost:3000';
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:1000/api';
 
 // Start the production server

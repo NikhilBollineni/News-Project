@@ -59,24 +59,25 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Connect to MongoDB with production optimizations
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/industry-news', {
-  maxPoolSize: 100, // Maintain up to 100 socket connections
-  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-  retryWrites: true,
-  w: 'majority'
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB with production settings');
-  console.log(`📊 Max pool size: 100 connections`);
-  console.log(`⏱️ Connection timeout: 5s`);
-  
-  // Start the RSS scraping scheduler
-  scheduler.start();
-  
-  // Initialize cache service (optional)
+// Connect to MongoDB with production optimizations (skip if using mock data)
+if (process.env.USE_MOCK_DATA !== 'true') {
+  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/industry-news', {
+    maxPoolSize: 100, // Maintain up to 100 socket connections
+    serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    retryWrites: true,
+    w: 'majority'
+  })
+  .then(() => {
+    console.log('✅ Connected to MongoDB with production settings');
+    console.log(`📊 Max pool size: 100 connections`);
+    console.log(`⏱️ Connection timeout: 5s`);
+    
+    // Start the RSS scraping scheduler
+    scheduler.start();
+    
+    // Initialize cache service (optional)
   cacheService.connect().catch(error => {
     console.log('⚠️ Redis cache service not available - running without cache');
   }).then(connected => {
@@ -91,6 +92,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/industry-
   console.log('⚠️ MongoDB not available, running in demo mode');
   console.log('💡 To enable full features: Start MongoDB or update MONGODB_URI in .env');
 });
+} else {
+  console.log('✅ Using mock data - skipping MongoDB connection');
+  // Start services even without database
+  scheduler.start();
+  cacheService.connect().catch(() => {
+    console.log('⚠️ Redis cache service not available - running without cache');
+  });
+}
 
 // Routes
 app.use('/api/articles', articleRoutes);

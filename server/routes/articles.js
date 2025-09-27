@@ -39,9 +39,16 @@ async function getFilterOptions(query) {
   }
 }
 
+// Production mode - mock data removed
+
+// Test endpoint removed for production
+
 // Get articles
-router.get('/', cacheMiddleware(1800, articleCacheKey), async (req, res) => {
+router.get('/', async (req, res) => {
   try {
+    // Production mode - always use database
+    console.log('Fetching articles from database');
+
     const { 
       industry, 
       category, 

@@ -1,10 +1,17 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 // MongoDB Atlas connection configuration
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is required');
+  console.warn('⚠️ MONGODB_URI not configured');
+  console.warn('📋 To set up MongoDB:');
+  console.warn('   1. Install MongoDB: brew install mongodb-community');
+  console.warn('   2. Start MongoDB: brew services start mongodb-community');
+  console.warn('   3. Or use Docker: docker run -d -p 27017:27017 mongo:latest');
+  console.warn('   4. Update .env with: MONGODB_URI=mongodb://localhost:27017/automotive-news');
+  // Don't throw error, allow app to start
 }
 
 // Connection options optimized for performance and reliability
@@ -27,6 +34,12 @@ let connection = null;
 
 const connectDB = async () => {
   try {
+    // Check if MONGODB_URI is configured
+    if (!MONGODB_URI) {
+      console.log('⚠️ MONGODB_URI not configured, skipping database connection');
+      return null;
+    }
+
     // Prevent multiple connections
     if (isConnected && mongoose.connection.readyState === 1) {
       console.log('✅ MongoDB Atlas already connected');
