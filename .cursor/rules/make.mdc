@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+## Project Vision
+We are building a **news intelligence app** that aggregates industry-specific news, processes 
+it with AI, and presents it to users in a **modern, clean UI**.  
+
+ Industry-first architecture**: we start with Automotive news, later add HVAC, Finance, Real Estate, etc., without rewriting ingestion or UI code.  
+---
+

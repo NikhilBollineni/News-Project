@@ -1,0 +1,62 @@
+{
+  "name": "industry-news-app",
+  "version": "1.0.0",
+  "description": "Industry-focused news aggregation platform",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/server.js",
+    "start:production": "node start-production.js",
+    "server:production": "node server/production-server.js",
+    "seed:google-news": "node server/scripts/seedGoogleNewsFeed.js",
+    "test": "mocha server/tests/**/*.test.js --timeout 10000",
+    "test:watch": "mocha server/tests/**/*.test.js --watch --timeout 10000",
+    "test:coverage": "nyc mocha server/tests/**/*.test.js --timeout 10000",
+    "migrate": "node server/scripts/migrate-database.js migrate",
+    "seed": "node server/scripts/migrate-database.js seed"
+  },
+  "keywords": [
+    "news",
+    "industry",
+    "aggregation",
+    "ai",
+    "rss"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.5.0",
+    "bcryptjs": "^2.4.3",
+    "cheerio": "^1.0.0-rc.12",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.5.0",
+    "natural": "^8.1.0",
+    "node-2fa": "^2.0.3",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.6",
+    "openai": "^4.0.0",
+    "qrcode": "^1.5.4",
+    "redis": "^5.8.2",
+    "rss-parser": "^3.13.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "speakeasy": "^2.0.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "chai": "^6.0.1",
+    "concurrently": "^8.2.0",
+    "mocha": "^11.7.2",
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sources": [
+    {
+      "id": "google_news_automotive",
+      "name": "Google News - Automotive",
+      "type": "RSS_SEARCH",
+      "url": "https://news.google.com/rss/search?q=automotive&hl=en-US&gl=US&ceid=US:en",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "news", "google"],
+      "isActive": true,
+      "priority": 1,
+      "refreshInterval": 900,
+      "description": "Google News RSS search for automotive industry news"
+    },
+    {
+      "id": "motor1",
+      "name": "Motor1",
+      "type": "RSS",
+      "url": "https://www.motor1.com/rss/",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "reviews", "news"],
+      "isActive": true,
+      "priority": 2,
+      "refreshInterval": 1800,
+      "description": "Motor1 automotive news and reviews"
+    },
+    {
+      "id": "insideevs",
+      "name": "InsideEVs",
+      "type": "RSS",
+      "url": "https://insideevs.com/feed/",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "electric", "ev"],
+      "isActive": true,
+      "priority": 2,
+      "refreshInterval": 1800,
+      "description": "InsideEVs electric vehicle news and reviews"
+    },
+    {
+      "id": "reuters_autos",
+      "name": "Reuters - Autos",
+      "type": "RSS",
+      "url": "https://feeds.reuters.com/reuters/autos",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "business", "news"],
+      "isActive": true,
+      "priority": 1,
+      "refreshInterval": 1800,
+      "description": "Reuters automotive business news"
+    },
+    {
+      "id": "teslarati",
+      "name": "Teslarati",
+      "type": "RSS",
+      "url": "https://www.teslarati.com/feed/",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "tesla", "electric"],
+      "isActive": true,
+      "priority": 3,
+      "refreshInterval": 1800,
+      "description": "Teslarati Tesla and EV news"
+    },
+    {
+      "id": "electrek",
+      "name": "Electrek",
+      "type": "RSS",
+      "url": "https://electrek.co/feed/",
+      "country": "US",
+      "language": "en",
+      "tags": ["automotive", "electric", "clean_energy"],
+      "isActive": true,
+      "priority": 3,
+      "refreshInterval": 1800,
+      "description": "Electrek clean energy and EV news"
+    }
+  ],
+  "config": {
+    "defaultRefreshInterval": 1800,
+    "maxConcurrentFetches": 3,
+    "requestTimeout": 10000,
+    "retryAttempts": 3,
+    "retryDelay": 5000,
+    "userAgent": "NewsIngestionBot/1.0 (https://github.com/your-repo)",
+    "industries": ["Automotive", "HVAC", "Finance", "Healthcare", "Energy", "Tech", "Unknown"],
+    "categories": ["Launch", "Financials", "Competitor", "Regulation", "Research", "Opinion", "Other"]
+  }
+}
