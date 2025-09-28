@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Car, Search, Filter, Bell, User, Wifi, WifiOff, RefreshCw, Menu, X, ChevronLeft, ChevronRight, BarChart3, Table, TrendingUp } from 'lucide-react'
+import { Car, Search, Filter, Bell, User, Wifi, WifiOff, RefreshCw, Menu, X, ChevronLeft, ChevronRight, BarChart3, Table, TrendingUp, Radio } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { api } from '@/lib/api'
+import { io, Socket } from 'socket.io-client'
 
 interface Article {
   _id: string
@@ -49,6 +50,11 @@ export default function IndustryDashboard() {
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [activeSidebarTab, setActiveSidebarTab] = useState<'categories' | 'analytics'>('categories')
   const [analyticsView, setAnalyticsView] = useState<'table' | 'chart'>('table')
+  const [socket, setSocket] = useState<Socket | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const [newArticlesCount, setNewArticlesCount] = useState(0)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [newArticles, setNewArticles] = useState<Record<string, number>>({})
 
   const currentIndustry = industries.find(ind => ind.id === selectedIndustry)
 
@@ -175,6 +181,122 @@ export default function IndustryDashboard() {
     }
   }, [backendConnected, selectedIndustry, searchQuery, selectedCategory])
 
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:1000'
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling']
+    })
+
+    newSocket.on('connect', () => {
+      console.log('🔗 Connected to WebSocket server')
+      setIsConnected(true)
+      setBackendConnected(true)
+    })
+
+    newSocket.on('disconnect', () => {
+      console.log('🔌 Disconnected from WebSocket server')
+      setIsConnected(false)
+    })
+
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error)
+      setIsConnected(false)
+    })
+
+    newSocket.on('new_article', (data) => {
+      console.log('📰 New article received:', data)
+      const newArticle = data.article
+      
+      // Add new article to the beginning of the list
+      setArticles(prev => {
+        if (!prev) return [newArticle]
+        // Check if article already exists to avoid duplicates
+        const exists = prev.some(article => article._id === newArticle._id)
+        if (exists) return prev
+        return [newArticle, ...prev]
+      })
+      
+      // Mark article as new with timestamp
+      setNewArticles(prev => ({
+          ...prev,
+        [newArticle._id]: Date.now()
+      }))
+      
+      // Update stats
+      setStats(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          totalArticles: prev.totalArticles + 1,
+          articlesByCategory: {
+            ...prev.articlesByCategory,
+            [newArticle.category || 'other']: (prev.articlesByCategory[newArticle.category || 'other'] || 0) + 1
+          }
+        }
+      })
+      
+      // Update new articles count and last update time
+      setNewArticlesCount(prev => prev + 1)
+      setLastUpdate(new Date())
+      
+      // Show notification
+      toast.success(`📰 New Article: ${newArticle.title?.substring(0, 60)}${newArticle.title?.length > 60 ? '...' : ''}`, {
+        duration: 4000,
+        icon: '🚗'
+      })
+    })
+
+    newSocket.on('article_processed', (data) => {
+      console.log('🤖 Article processed with AI:', data)
+      // Update existing article with AI processing results
+      setArticles(prev => {
+        if (!prev) return []
+        return prev.map(article => 
+          article._id === data.articleId 
+            ? { ...article, aiSummary: data.aiSummary, aiCategory: data.aiCategory, aiSentiment: data.aiSentiment }
+            : article
+        )
+      })
+    })
+
+    setSocket(newSocket)
+
+    // Cleanup on unmount
+    return () => {
+      newSocket.disconnect()
+    }
+  }, [])
+
+  // Auto-refresh fallback every 30 seconds if WebSocket is not connected
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isConnected && backendConnected) {
+        console.log('🔄 Auto-refresh fallback triggered')
+        fetchArticles()
+        fetchStats()
+      }
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [isConnected, backendConnected])
+
+  // Auto-remove new article status after 1 minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNewArticles(prev => {
+        const now = Date.now()
+        return Object.fromEntries(
+          Object.entries(prev).filter(([_, timestamp]) => 
+            now - timestamp < 60000 // Keep only articles newer than 1 minute
+          )
+        )
+      })
+    }, 10000) // Check every 10 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
   // Handle refresh
   const handleRefresh = () => {
     fetchArticles()
@@ -185,6 +307,13 @@ export default function IndustryDashboard() {
   // Handle category selection
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category === selectedCategory ? '' : category)
+  }
+
+  // Check if article is new (within 1 minute)
+  const isNewArticle = (articleId: string) => {
+    const addedTime = newArticles[articleId]
+    if (!addedTime) return false
+    return Date.now() - addedTime < 60000 // 1 minute = 60000ms
   }
 
   // Get category analytics data
@@ -459,10 +588,15 @@ export default function IndustryDashboard() {
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">Industry News Dashboard</h1>
             <div className="flex items-center space-x-2">
-              {backendConnected ? (
+              {isConnected ? (
                 <>
-                  <Wifi className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-600">Connected</span>
+                  <Radio className="w-4 h-4 text-green-500 animate-pulse" />
+                  <span className="text-sm text-green-600">Live</span>
+                </>
+              ) : backendConnected ? (
+                <>
+                  <Wifi className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm text-blue-600">Connected</span>
                 </>
               ) : (
                 <>
@@ -483,10 +617,18 @@ export default function IndustryDashboard() {
               <span>Refresh</span>
             </button>
             
-            <div className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg">
+            <button
+              onClick={() => setNewArticlesCount(0)}
+              className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
               <Bell className="w-4 h-4" />
-              <span>3</span>
-            </div>
+              <span>New</span>
+              {newArticlesCount > 0 && (
+                <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">
+                  {newArticlesCount}
+                </span>
+              )}
+            </button>
             
             <div className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg">
               <User className="w-4 h-4" />
@@ -554,8 +696,16 @@ export default function IndustryDashboard() {
               <p className="text-2xl font-bold text-gray-900">{stats.articlesByCategory ? Object.keys(stats.articlesByCategory).length : 0}</p>
             </div>
             <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-500">Active Sources</h3>
-              <p className="text-2xl font-bold text-gray-900">1</p>
+              <h3 className="text-sm font-medium text-gray-500">Last Update</h3>
+              <p className="text-sm font-medium text-gray-900">
+                {lastUpdate ? lastUpdate.toLocaleTimeString() : 'Never'}
+              </p>
+              {isConnected && (
+                <p className="text-xs text-green-600 flex items-center mt-1">
+                  <Radio className="w-3 h-3 mr-1" />
+                  Live updates
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -575,7 +725,20 @@ export default function IndustryDashboard() {
                 if (!article || !article._id) return null;
 
   return (
-                  <div key={article._id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-all duration-200 hover:border-blue-300 flex flex-col h-full">
+                  <div key={article._id} className={`bg-white rounded-lg border-2 p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full relative ${
+                    isNewArticle(article._id) 
+                      ? 'border-red-500 shadow-red-200 animate-pulse' 
+                      : 'border-gray-200 hover:border-blue-300'
+                  }`}>
+                    {/* NEW Badge */}
+                    {isNewArticle(article._id) && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <span className="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full animate-bounce shadow-lg">
+                          NEW
+                        </span>
+                      </div>
+                    )}
+
                     {/* Article Header */}
                     <div className="mb-3">
                       <div className="flex items-start justify-between mb-2">
