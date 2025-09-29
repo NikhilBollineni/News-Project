@@ -43,6 +43,7 @@ class NewsIngestionScheduler {
 
     // Quick ingestion job (just fetch RSS feeds)
     this.addJob('quickIngestion', this.config.quickIngestionSchedule, () => {
+      console.log('🕐 Quick Ingestion job triggered at:', new Date().toISOString());
       return this.runJob('Quick Ingestion', async () => {
         const RSSScraper = require('./rssScraper');
         return await RSSScraper.processAllFeeds();
@@ -99,6 +100,7 @@ class NewsIngestionScheduler {
     }
 
     try {
+      console.log(`🕐 Setting up job: ${name} with schedule: ${schedule}`);
       const job = cron.schedule(schedule, jobFunction, {
         scheduled: false,
         timezone: process.env.TZ || 'UTC'
@@ -108,8 +110,10 @@ class NewsIngestionScheduler {
       job.start();
 
       logger.info(`Added job: ${name} (schedule: ${schedule})`);
+      console.log(`✅ Job ${name} started with schedule: ${schedule}`);
     } catch (error) {
       logger.error(`Error adding job ${name}:`, error.message);
+      console.error(`❌ Error setting up job ${name}:`, error.message);
     }
   }
 
