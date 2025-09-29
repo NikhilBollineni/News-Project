@@ -184,44 +184,63 @@ export default function IndustryDashboard() {
   // WebSocket connection for real-time updates
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:1000'
+    console.log('🔌 Attempting to connect to WebSocket:', socketUrl)
     const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     })
 
     newSocket.on('connect', () => {
-      console.log('🔗 Connected to WebSocket server')
+      console.log('✅ Connected to WebSocket server', newSocket.id)
+      console.log('🔗 WebSocket URL:', socketUrl)
       setIsConnected(true)
       setBackendConnected(true)
+      toast.success('🔗 Connected to live updates', { duration: 2000 })
     })
 
     newSocket.on('disconnect', () => {
-      console.log('🔌 Disconnected from WebSocket server')
+      console.log('❌ Disconnected from WebSocket server')
       setIsConnected(false)
+      toast.error('🔌 Disconnected from live updates', { duration: 2000 })
     })
 
     newSocket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error)
+      console.error('❌ WebSocket connection error:', error)
       setIsConnected(false)
     })
 
     newSocket.on('new_article', (data) => {
-      console.log('📰 New article received:', data)
+      console.log('📰 New article event received!')
+      console.log('📊 Article data:', data)
       const newArticle = data.article
       
       // Add new article to the beginning of the list
       setArticles(prev => {
-        if (!prev) return [newArticle]
+        if (!prev) {
+          console.log('✅ Adding first article to empty grid')
+          return [newArticle]
+        }
         // Check if article already exists to avoid duplicates
         const exists = prev.some(article => article._id === newArticle._id)
-        if (exists) return prev
+        if (exists) {
+          console.log('⚠️ Article already exists in grid, skipping')
+          return prev
+        }
+        console.log(`✅ Adding new article to grid (total: ${prev.length + 1})`)
         return [newArticle, ...prev]
       })
       
       // Mark article as new with timestamp
-      setNewArticles(prev => ({
+      setNewArticles(prev => {
+        const updated = {
           ...prev,
-        [newArticle._id]: Date.now()
-      }))
+          [newArticle._id]: Date.now()
+        }
+        console.log('🏷️ Marked article as NEW:', newArticle._id)
+        return updated
+      })
       
       // Update stats
       setStats(prev => {
@@ -281,18 +300,18 @@ export default function IndustryDashboard() {
     return () => clearInterval(interval)
   }, [isConnected, backendConnected])
 
-  // Auto-remove new article status after 1 minute
+  // Auto-remove new article status after 20 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setNewArticles(prev => {
         const now = Date.now()
         return Object.fromEntries(
           Object.entries(prev).filter(([_, timestamp]) => 
-            now - timestamp < 60000 // Keep only articles newer than 1 minute
+            now - timestamp < 20000 // Keep only articles newer than 20 seconds
           )
         )
       })
-    }, 10000) // Check every 10 seconds
+    }, 5000) // Check every 5 seconds
 
     return () => clearInterval(interval)
   }, [])
@@ -309,11 +328,11 @@ export default function IndustryDashboard() {
     setSelectedCategory(category === selectedCategory ? '' : category)
   }
 
-  // Check if article is new (within 1 minute)
+  // Check if article is new (within 20 seconds)
   const isNewArticle = (articleId: string) => {
     const addedTime = newArticles[articleId]
     if (!addedTime) return false
-    return Date.now() - addedTime < 60000 // 1 minute = 60000ms
+    return Date.now() - addedTime < 20000 // 20 seconds = 20000ms
   }
 
   // Get category analytics data
@@ -727,9 +746,12 @@ export default function IndustryDashboard() {
   return (
                   <div key={article._id} className={`bg-white rounded-lg border-2 p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full relative ${
                     isNewArticle(article._id) 
-                      ? 'border-red-500 shadow-red-200 animate-pulse' 
+                      ? 'border-red-500 shadow-lg shadow-red-400 animate-pulse' 
                       : 'border-gray-200 hover:border-blue-300'
-                  }`}>
+                  }`} style={isNewArticle(article._id) ? {
+                    boxShadow: '0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.4)',
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  } : {}}>
                     {/* NEW Badge */}
                     {isNewArticle(article._id) && (
                       <div className="absolute top-2 right-2 z-10">

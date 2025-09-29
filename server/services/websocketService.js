@@ -61,7 +61,8 @@ class WebSocketService {
   broadcastNewArticle(article) {
     try {
       const articleData = {
-        id: article._id,
+        _id: article._id,  // Frontend expects _id
+        id: article._id,   // Backward compatibility
         title: article.title,
         summary: article.summary,
         url: article.url,

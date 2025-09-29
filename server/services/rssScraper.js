@@ -251,6 +251,142 @@ class RSSScraper {
       };
     }
   }
+
+  // Process all active RSS feeds (called by scheduler)
+  static async processAllFeeds() {
+    try {
+      console.log('🔄 Starting RSS feed processing...');
+      
+      const RSSFeed = require('../models/RSSFeed');
+      const Article = require('../models/Article');
+      const AIProcessor = require('./aiProcessor');
+      const websocketService = require('./websocketService');
+      
+      const rssScraper = new RSSScraper();
+      const aiProcessor = new AIProcessor();
+      
+      // Get active RSS feeds
+      const feeds = await RSSFeed.find({ isActive: true });
+      
+      if (feeds.length === 0) {
+        console.log('⚠️ No active RSS feeds found');
+        return { success: false, message: 'No active RSS feeds' };
+      }
+      
+      let totalNewArticles = 0;
+      let totalProcessed = 0;
+      
+      for (const feed of feeds) {
+        try {
+          console.log(`📡 Processing feed: ${feed.name}`);
+          
+          // Fetch RSS feed
+          const articles = await rssScraper.fetchRSSFeed(feed.url);
+          totalProcessed += articles.length;
+          
+          let feedNewArticles = 0;
+          
+          for (const articleData of articles) {
+            try {
+              // Check if article already exists
+              const existingArticle = await Article.findOne({ url: articleData.url });
+              
+              if (existingArticle) {
+                continue; // Skip duplicate
+              }
+              
+              // Create new article
+              const article = new Article({
+                title: articleData.title,
+                summary: articleData.summary || articleData.title,
+                content: articleData.content,
+                url: articleData.url,
+                source: {
+                  name: feed.name,
+                  url: feed.website,
+                  rssFeed: feed.url
+                },
+                industry: feed.industry,
+                category: 'other', // Will be updated by AI
+                tags: articleData.tags || [],
+                publishedAt: articleData.publishedAt || new Date(),
+                scrapedAt: new Date()
+              });
+              
+              // Save article
+              await article.save();
+              feedNewArticles++;
+              totalNewArticles++;
+              
+              // Broadcast new article via WebSocket
+              try {
+                websocketService.broadcastNewArticle(article);
+                console.log(`📡 Broadcasted new article: ${article.title}`);
+              } catch (broadcastError) {
+                console.error('❌ Error broadcasting article:', broadcastError.message);
+              }
+              
+              // Process with AI
+              try {
+                const aiResult = await aiProcessor.processArticle(article);
+                
+                if (aiResult) {
+                  article.processedByAI = true;
+                  article.aiTitle = aiResult.title;
+                  article.aiSummary = aiResult.summary;
+                  article.aiCategory = aiResult.category;
+                  article.aiSentiment = aiResult.sentiment;
+                  article.aiTags = aiResult.tags;
+                  article.importance = aiResult.importance;
+                  
+                  await article.save();
+                  console.log(`✅ AI processed: ${article.title}`);
+                  
+                  // Broadcast AI processing completion
+                  try {
+                    websocketService.broadcastArticleUpdate(article);
+                  } catch (broadcastError) {
+                    console.error('❌ Error broadcasting AI update:', broadcastError.message);
+                  }
+                }
+              } catch (aiError) {
+                console.error(`❌ AI processing failed for article ${article._id}:`, aiError.message);
+              }
+              
+            } catch (articleError) {
+              console.error(`❌ Error processing article:`, articleError.message);
+            }
+          }
+          
+          // Update feed last scraped time
+          feed.lastScraped = new Date();
+          await feed.save();
+          
+          console.log(`✅ Feed ${feed.name}: ${feedNewArticles} new articles from ${articles.length} total`);
+          
+        } catch (feedError) {
+          console.error(`❌ Error processing feed ${feed.name}:`, feedError.message);
+        }
+      }
+      
+      console.log(`🎉 RSS processing completed: ${totalNewArticles} new articles from ${totalProcessed} processed`);
+      
+      return {
+        success: true,
+        newArticlesCount: totalNewArticles,
+        totalProcessed,
+        timestamp: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error('❌ Error in processAllFeeds:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }
 
 module.exports = RSSScraper;

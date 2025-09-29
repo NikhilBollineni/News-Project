@@ -82,6 +82,15 @@ router.post('/refresh-news', async (req, res) => {
             feedNewArticles++;
             totalNewArticles++;
             
+            // Broadcast new article via WebSocket
+            try {
+              const websocketService = require('../services/websocketService');
+              websocketService.broadcastNewArticle(article);
+              console.log(`📡 Broadcasted new article: ${article.title}`);
+            } catch (broadcastError) {
+              console.error('❌ Error broadcasting article:', broadcastError.message);
+            }
+            
             // Process with AI
             try {
               const aiResult = await aiProcessor.processArticle(article);
@@ -97,6 +106,14 @@ router.post('/refresh-news', async (req, res) => {
                 
                 await article.save();
                 console.log(`✅ AI processed: ${article.title}`);
+                
+                // Broadcast AI processing completion
+                try {
+                  const websocketService = require('../services/websocketService');
+                  websocketService.broadcastArticleUpdate(article);
+                } catch (broadcastError) {
+                  console.error('❌ Error broadcasting AI update:', broadcastError.message);
+                }
               }
             } catch (aiError) {
               console.error(`❌ AI processing failed for article ${article._id}:`, aiError.message);
