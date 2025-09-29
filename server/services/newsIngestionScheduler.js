@@ -12,7 +12,7 @@ class NewsIngestionScheduler {
     this.config = {
       // Default schedules
       fullPipelineSchedule: process.env.FULL_PIPELINE_SCHEDULE || '0 */6 * * *', // Every 6 hours
-      quickIngestionSchedule: process.env.QUICK_INGESTION_SCHEDULE || '*/15 * * * *', // Every 15 minutes
+      quickIngestionSchedule: process.env.QUICK_INGESTION_SCHEDULE || '*/2 * * * *', // Every 2 minutes
       gptProcessingSchedule: process.env.GPT_PROCESSING_SCHEDULE || '0 */2 * * *', // Every 2 hours
       deduplicationSchedule: process.env.DEDUPLICATION_SCHEDULE || '0 2 * * *', // Daily at 2 AM
       cleanupSchedule: process.env.CLEANUP_SCHEDULE || '0 3 * * 0', // Weekly on Sunday at 3 AM
@@ -43,7 +43,10 @@ class NewsIngestionScheduler {
 
     // Quick ingestion job (just fetch RSS feeds)
     this.addJob('quickIngestion', this.config.quickIngestionSchedule, () => {
-      return this.runJob('Quick Ingestion', () => newsFetcher.processAllSources());
+      return this.runJob('Quick Ingestion', async () => {
+        const RSSScraper = require('./rssScraper');
+        return await RSSScraper.processAllFeeds();
+      });
     });
 
     // GPT processing job
@@ -207,7 +210,7 @@ class NewsIngestionScheduler {
     const now = new Date();
     const schedules = {
       fullPipeline: 6 * 60 * 60 * 1000, // 6 hours
-      quickIngestion: 15 * 60 * 1000, // 15 minutes
+      quickIngestion: 2 * 60 * 1000, // 2 minutes
       gptProcessing: 2 * 60 * 60 * 1000, // 2 hours
       deduplication: 24 * 60 * 60 * 1000, // 24 hours
       cleanup: 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -236,7 +239,10 @@ class NewsIngestionScheduler {
   async triggerJob(jobName) {
     const jobMap = {
       fullPipeline: () => newsIngestionPipeline.runFullPipeline(),
-      quickIngestion: () => newsFetcher.processAllSources(),
+      quickIngestion: async () => {
+        const RSSScraper = require('./rssScraper');
+        return await RSSScraper.processAllFeeds();
+      },
       gptProcessing: () => gptProcessor.processUnprocessedArticles(100),
       deduplication: () => newsIngestionPipeline.runDeduplicationCheck(),
       cleanup: () => newsIngestionPipeline.cleanupOldData()
@@ -256,7 +262,10 @@ class NewsIngestionScheduler {
   updateJobSchedule(jobName, newSchedule) {
     const jobMap = {
       fullPipeline: () => newsIngestionPipeline.runFullPipeline(),
-      quickIngestion: () => newsFetcher.processAllSources(),
+      quickIngestion: async () => {
+        const RSSScraper = require('./rssScraper');
+        return await RSSScraper.processAllFeeds();
+      },
       gptProcessing: () => gptProcessor.processUnprocessedArticles(100),
       deduplication: () => newsIngestionPipeline.runDeduplicationCheck(),
       cleanup: () => newsIngestionPipeline.cleanupOldData()
