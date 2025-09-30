@@ -195,16 +195,25 @@ class RSSScraper {
     
     if (!content) return existingSummary || '';
     
-    // Take first 300 characters as summary
-    const summary = content.substring(0, 300);
+    // Generate 200-word summary instead of 300 characters
+    const words = content.split(' ');
+    const summaryWords = words.slice(0, 200);
+    let summary = summaryWords.join(' ');
     
     // Try to end at a sentence boundary
     const lastPeriod = summary.lastIndexOf('.');
-    if (lastPeriod > 100) {
-      return summary.substring(0, lastPeriod + 1);
+    const lastExclamation = summary.lastIndexOf('!');
+    const lastQuestion = summary.lastIndexOf('?');
+    
+    const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
+    
+    if (lastSentenceEnd > 50) {
+      summary = summary.substring(0, lastSentenceEnd + 1);
+    } else {
+      summary = summary + '...';
     }
     
-    return summary + '...';
+    return summary;
   }
   
   async testFeed(feedUrl) {

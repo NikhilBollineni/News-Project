@@ -55,8 +55,28 @@ export default function IndustryDashboard() {
   const [newArticlesCount, setNewArticlesCount] = useState(0)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [newArticles, setNewArticles] = useState<Record<string, number>>({})
+  const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({})
 
   const currentIndustry = industries.find(ind => ind.id === selectedIndustry)
+
+  // Helper functions for summary management
+  const toggleSummaryExpansion = (articleId: string) => {
+    setExpandedSummaries(prev => ({
+      ...prev,
+      [articleId]: !prev[articleId]
+    }))
+  }
+
+  const getSummaryPreview = (summary: string, maxWords: number = 50) => {
+    if (!summary) return ''
+    const words = summary.split(' ')
+    if (words.length <= maxWords) return summary
+    return words.slice(0, maxWords).join(' ') + '...'
+  }
+
+  const isSummaryExpanded = (articleId: string) => {
+    return expandedSummaries[articleId] || false
+  }
 
   // Backend connection check
   useEffect(() => {
@@ -774,12 +794,13 @@ export default function IndustryDashboard() {
                         )}
                       </div>
                       
-                      <h3 className="text-sm font-semibold text-gray-900 line-clamp-3 mb-2 leading-tight">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-2 leading-tight">
                         <a 
                           href={article.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="hover:text-blue-600 transition-colors"
+                          title={article.title}
                         >
                           {article.title}
                         </a>
@@ -789,8 +810,20 @@ export default function IndustryDashboard() {
                     {/* Article Content */}
                     <div className="flex-1 mb-4">
                       <p className="text-sm text-gray-600 leading-relaxed">
-                        {article.aiSummary || article.summary}
+                        {isSummaryExpanded(article._id) 
+                          ? (article.aiSummary || article.summary)
+                          : getSummaryPreview(article.aiSummary || article.summary, 50)
+                        }
                       </p>
+                      {(article.aiSummary || article.summary) && 
+                       (article.aiSummary || article.summary).split(' ').length > 50 && (
+                        <button
+                          onClick={() => toggleSummaryExpansion(article._id)}
+                          className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        >
+                          {isSummaryExpanded(article._id) ? 'Show Less' : 'Read Full Summary'}
+                        </button>
+                      )}
                     </div>
                     
                     {/* Article Footer */}
