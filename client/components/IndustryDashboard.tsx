@@ -56,6 +56,9 @@ export default function IndustryDashboard() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [newArticles, setNewArticles] = useState<Record<string, number>>({})
   const [expandedSummaries, setExpandedSummaries] = useState<Record<string, boolean>>({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMoreArticles, setHasMoreArticles] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const currentIndustry = industries.find(ind => ind.id === selectedIndustry)
 
@@ -113,15 +116,23 @@ export default function IndustryDashboard() {
   }, [])
 
   // Fetch articles
-  const fetchArticles = async () => {
+  const fetchArticles = async (page: number = 1, append: boolean = false) => {
     try {
-      setRefreshing(true)
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setRefreshing(true)
+        setCurrentPage(1)
+        setHasMoreArticles(true)
+      }
+
       const response = await api.get('/articles', {
         params: {
           industry: selectedIndustry,
           search: searchQuery,
           category: selectedCategory,
-          limit: 32
+          limit: 32,
+          page: page
         }
       })
       
@@ -131,17 +142,33 @@ export default function IndustryDashboard() {
       
       // Validate articles data
       const validArticles = Array.isArray(articlesData) ? articlesData : []
+        
+        if (append) {
+          // Append new articles to existing ones
+        setArticles(prev => [...(prev || []), ...validArticles])
+        } else {
+        // Replace articles (first load or refresh)
+        setArticles(validArticles)
+      }
       
-      setArticles(validArticles)
+      // Check if there are more articles
+      setHasMoreArticles(validArticles.length === 32)
+      setCurrentPage(page)
+      
       setLoading(false)
       setError(null)
+      console.log(`✅ Articles loaded: ${validArticles.length} (page ${page})`)
     } catch (err) {
       console.error('Failed to fetch articles:', err)
       setError('Failed to load articles')
       setLoading(false)
-      setArticles([]) // Ensure articles is always an array
-      } finally {
+        setHasMoreArticles(false)
+      if (!append) {
+        setArticles([]) // Ensure articles is always an array
+      }
+    } finally {
       setRefreshing(false)
+      setLoadingMore(false)
     }
   }
 
@@ -255,7 +282,7 @@ export default function IndustryDashboard() {
       // Mark article as new with timestamp
       setNewArticles(prev => {
         const updated = {
-          ...prev,
+      ...prev,
           [newArticle._id]: Date.now()
         }
         console.log('🏷️ Marked article as NEW:', newArticle._id)
@@ -341,6 +368,13 @@ export default function IndustryDashboard() {
     fetchArticles()
     fetchStats()
     fetchCategories()
+  }
+
+  // Handle load more articles
+  const handleLoadMore = () => {
+    if (hasMoreArticles && !loadingMore) {
+      fetchArticles(currentPage + 1, true)
+    }
   }
 
   // Handle category selection
@@ -533,8 +567,8 @@ export default function IndustryDashboard() {
                     <Car className="w-5 h-5 mx-auto" />
                   </button>
                 ))}
-              </div>
-            )
+      </div>
+    )
           ) : (
             /* Analytics Tab Content */
             sidebarOpen ? (
@@ -613,8 +647,8 @@ export default function IndustryDashboard() {
                 >
                   <TrendingUp className="w-5 h-5 mx-auto" />
                 </button>
-              </div>
-            )
+    </div>
+  )
           )}
         </div>
       </div>
@@ -850,17 +884,17 @@ export default function IndustryDashboard() {
         </div>
 
         {/* Load More Button */}
-        {articles && articles.length > 0 && (
+        {articles && articles.length > 0 && hasMoreArticles && (
           <div className="mt-8 text-center">
             <button 
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={handleLoadMore}
+              disabled={loadingMore || refreshing}
               className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {refreshing ? (
+              {loadingMore ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
+                  Loading More...
                 </>
               ) : (
                 <>
@@ -869,7 +903,7 @@ export default function IndustryDashboard() {
                 </>
               )}
             </button>
-      </div>
+          </div>
         )}
         </main>
       </div>
