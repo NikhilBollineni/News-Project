@@ -70,7 +70,7 @@ export default function IndustryDashboard() {
     }))
   }
 
-  const getSummaryPreview = (summary: string, maxWords: number = 50) => {
+  const getSummaryPreview = (summary: string, maxWords: number = 200) => {
     if (!summary) return ''
     const words = summary.split(' ')
     if (words.length <= maxWords) return summary
@@ -846,11 +846,11 @@ export default function IndustryDashboard() {
                       <p className="text-sm text-gray-600 leading-relaxed">
                         {isSummaryExpanded(article._id) 
                           ? (article.aiSummary || article.summary)
-                          : getSummaryPreview(article.aiSummary || article.summary, 50)
+                          : getSummaryPreview(article.aiSummary || article.summary, 100)
                         }
                       </p>
                       {(article.aiSummary || article.summary) && 
-                       (article.aiSummary || article.summary).split(' ').length > 50 && (
+                       (article.aiSummary || article.summary).split(' ').length > 100 && (
                         <button
                           onClick={() => toggleSummaryExpansion(article._id)}
                           className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"

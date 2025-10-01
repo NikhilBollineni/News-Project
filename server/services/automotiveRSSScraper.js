@@ -328,7 +328,7 @@ IMPORTANT: Respond with ONLY valid JSON. Do not include any markdown formatting,
 Required JSON structure:
 {
   "title": "Create an engaging, automotive industry-focused title (max 80 characters)",
-  "summary": "Create a clear, informative summary highlighting key automotive industry insights (max 150 words)",
+  "summary": "Create a comprehensive, detailed summary highlighting key automotive industry insights, market implications, and strategic analysis (300-500 words)",
   "category": "Classify into one of these automotive categories: product-launches, ev-technology, manufacturing, m-and-a, financials, regulatory, market-trends, competitor-moves, supply-chain",
   "tags": ["Extract 3-5 relevant automotive tags (brands, technologies, markets)"],
   "sentiment": "Analyze sentiment for automotive industry impact: positive, negative, or neutral",
@@ -358,7 +358,7 @@ Focus on automotive industry relevance, brand recognition, technology trends, an
           }
         ],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 1500
       });
 
       let aiResponse;

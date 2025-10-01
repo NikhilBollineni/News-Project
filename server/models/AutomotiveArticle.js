@@ -39,7 +39,7 @@ const automotiveArticleSchema = new mongoose.Schema({
   },
   aiSummary: {
     type: String,
-    maxlength: 1500
+    maxlength: 5000
   },
   aiCategory: {
     type: String,
