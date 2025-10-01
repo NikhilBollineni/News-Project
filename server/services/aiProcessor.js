@@ -7,7 +7,7 @@ class AIProcessor {
     });
     
     this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
-    this.maxTokens = parseInt(process.env.OPENAI_MAX_TOKENS) || 2000;
+    this.maxTokens = parseInt(process.env.OPENAI_MAX_TOKENS) || 2500;
     this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.3;
     
     console.log('🤖 AI Processor initialized');
@@ -70,7 +70,7 @@ PUBLISHED: ${article.publishedAt}
 Please provide a JSON response with the following structure:
 {
   "title": "Enhanced title (max 100 characters, more engaging than original)",
-  "summary": "Comprehensive summary (200-300 words, key insights and implications)",
+  "summary": "Comprehensive, detailed summary with deep analysis and strategic insights (300-500 words, covering key implications, market impact, and industry context)",
   "category": "One of: product-launch, financial, regulatory, market-trends, technology, safety, partnerships, other",
   "sentiment": "One of: positive, negative, neutral",
   "tags": ["3-5 relevant keywords or phrases"],
